@@ -1,0 +1,90 @@
+# =================================================================
+# Общие правила для всех проектов
+# =================================================================
+.DS_Store
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Файлы IDE и редакторов
+.idea/
+.vscode/
+*.iml
+*.iws
+
+# Личные и временные файлы из твоего списка
+for_me.txt
+project_context.txt
+tree.txt
+delta.zip
+
+
+# =================================================================
+# Python / Django (для папки backend/)
+# =================================================================
+# Виртуальное окружение
+/venv/
+/env/
+.venv/
+
+# Секретные файлы
+/backend/.env
+local_settings.py
+
+# Скомпилированные файлы Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Базы данных
+*.sqlite3
+*.sqlite3-journal
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Sphinx documentation
+/docs/_build/
+
+# Mypy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+
+# =================================================================
+# Dart / Flutter (для папки frontend/)
+# =================================================================
+# Сгенерированные файлы и папки
+/frontend/.dart_tool/
+/frontend/.metadata
+/frontend/.flutter-plugins
+/frontend/.flutter-plugins-dependencies
+
+# Папка сборки
+/frontend/build/
+
+# Кэш инструментов Flutter (твоя папка /frontend/flutter)
+/frontend/flutter/
+
+# Файлы, специфичные для платформы Android
+/frontend/android/key.properties
+/frontend/android/local.properties
+/frontend/android/.gradle/
+/frontend/android/app/src/main/jniLibs/
+
+# Файлы, специфичные для платформы iOS
+/frontend/ios/Pods/
+/frontend/ios/Flutter/App.framework
+/frontend/ios/Flutter/engine
+/frontend/ios/Flutter/flutter_assets/
+/frontend/ios/.symlinks/
+/frontend/ios/Runner/GeneratedPluginRegistrant.*
+
+# Логи и артефакты Flutter
+.flutter-plugins-dependencies
+*.snapshot
+*.dill
+*.jks
