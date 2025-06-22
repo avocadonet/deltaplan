@@ -86,7 +86,10 @@ docker compose up --build
 ```bash
 docker compose exec backend python manage.py migrate
 ```
-
+#### **Создание суперпользователя**
+```bash
+docker compose  exec backend python manage.py createsuperuser
+```
 #### **Запуск Frontend (Flutter):**
 1.  Убедитесь, что в `frontend/lib/api_service.dart` базовый URL указывает на сервер разработки:
     *   `http://127.0.0.1:8000/api/` (для Web, macOS, Windows)
