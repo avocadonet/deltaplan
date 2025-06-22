@@ -1,0 +1,119 @@
+name: Delta CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  test-and-lint:
+    name: Test & Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Create .env file for backend tests
+        run: |
+          echo "SECRET_KEY=dummy-secret-key-for-testing" > backend/deltaplan/.env
+          echo "DEBUG=True" >> backend/deltaplan/.env
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+      
+      - name: Lint backend with black
+        run: black backend/ --check
+        
+      - name: Run backend tests
+        run: |
+          cd backend/deltaplan
+          python manage.py test
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install frontend dependencies
+        run: flutter pub get
+        working-directory: ./frontend
+        
+      - name: Analyze frontend code
+        run: flutter analyze
+        working-directory: ./frontend
+
+      - name: Run frontend tests
+        run: flutter test
+        working-directory: ./frontend
+
+  build-and-push-image:
+    name: Build and Push Docker Image
+    needs: test-and-lint
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/deltaplan-backend:latest
+
+  deploy:
+    name: Deploy to Production
+    needs: build-and-push-image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SERVER_SSH_KEY }}
+
+      - name: Deploy to server
+        run: |
+          # Добавляем хост сервера в известные хосты, чтобы избежать интерактивного вопроса
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+          # Копируем .env файл на сервер
+          echo "${{ secrets.DOT_ENV_PROD }}" > .env.prod
+          scp .env.prod ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}:~/delta/backend/.env.prod
+
+          # Заходим на сервер по SSH и выполняем команды
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} << 'EOF'
+            cd ~/delta
+            git pull
+            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
+            
+            # Скачиваем новый образ backend с Docker Hub
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/deltaplan-backend:latest
+            
+            # Перезапускаем сервисы с новым образом и env файлом
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file backend/.env.prod up -d
+            
+            # Применяем новые миграции, если они есть
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file backend/.env.prod exec backend python manage.py migrate --no-input
+            
+            # Очищаем старые неиспользуемые образы
+            docker image prune -f
+          EOF
+
+

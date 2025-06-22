@@ -19,6 +19,7 @@ project_context.txt
 tree.txt
 delta.zip
 ag.py
+docker-compose.test.yml
 
 # =================================================================
 # Python / Django (для папки backend/)

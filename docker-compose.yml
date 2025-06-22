@@ -1,26 +1,26 @@
 services:
   postgres:
     image: postgres:15-alpine
-    container_name: deltaplan_db
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=deltaplan
+    container_name: deltaplan_db_dev
+    env_file:
+      - ./backend/.env
     ports:
       - "8082:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d deltaplan"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 5
       start_period: 30s
     restart: unless-stopped
+    networks:
+      - deltaplan_net
 
   backend:
     build: ./backend
-    container_name: deltaplan_backend
+    container_name: deltaplan_backend_dev
     command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend/deltaplan:/app
@@ -32,6 +32,12 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    networks:
+      - deltaplan_net
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
+
+networks:
+  deltaplan_net:
+    driver: bridge

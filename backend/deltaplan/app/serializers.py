@@ -8,7 +8,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name', 'role')
+        fields = ('username', 'password', 'password2', 'email', 'first_name', 'last_name')
 
     def validate(self, attrs):
         if attrs['password'] != attrs['password2']:
@@ -21,12 +21,12 @@ class RegisterSerializer(serializers.ModelSerializer):
             email=validated_data['email'],
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
-            role=validated_data.get('role', 'student')
+            role='student'
         )
         user.set_password(validated_data['password'])
         user.save()
         return user
-
+    
 class UserSerializer(serializers.ModelSerializer):
     """ Базовое представление данных пользователя. """
     class Meta:
