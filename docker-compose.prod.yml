@@ -1,25 +1,28 @@
-volumes:
-  postgres_data_prod:
-  static_volume:
-  media_volume:
-
 services:
   postgres:
+    image: postgres:15-alpine
     container_name: deltaplan_db_prod
     volumes:
       - postgres_data_prod:/var/lib/postgresql/data
-    ports: []
+    env_file:
+      - .env.prod
     restart: always
     networks:
       - deltaplan_net
 
   backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: deltaplan_backend_prod
+    command: gunicorn deltaplan.wsgi:application --bind 0.0.0.0:8000 --timeout 120
     volumes:
       - static_volume:/app/static
       - media_volume:/app/media
-    ports: []
-    command: gunicorn deltaplan.wsgi:application --bind 0.0.0.0:8000 --timeout 120
+    env_file:
+      - .env.prod
+    depends_on:
+      - postgres
     restart: always
     networks:
       - deltaplan_net
@@ -39,3 +42,14 @@ services:
     restart: always
     networks:
       - deltaplan_net
+    logging:
+      driver: "none"
+
+volumes:
+  postgres_data_prod:
+  static_volume:
+  media_volume:
+
+networks:
+  deltaplan_net:
+    driver: bridge
