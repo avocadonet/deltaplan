@@ -61,7 +61,7 @@ DB_HOST=postgres_dev
 DB_PORT=5432
 ```
 
-#### **Пример содержимого файла `.env.prod` (для продакшена):**
+#### **Пример содержимого файла `.env_prod` (для продакшена):**
 ```dotenv
 # Сгенерируйте надежный ключ для продакшена!
 SECRET_KEY='your-super-secret-and-long-production-key'
