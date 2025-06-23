@@ -171,11 +171,11 @@ docker compose -f docker-compose.prod.yml up --build -d
 
 *   **Применение миграций** (обязательно при первом запуске!):
     ```bash
-    docker compose -f docker-compose.prod.yml exec backend_prod python deltaplan/manage.py migrate
+    docker compose -f docker-compose.prod.yml exec backend_prod python manage.py migrate
     ```
 *   **Создание суперпользователя** (для доступа к админ-панели):
     ```bash
-    docker compose -f docker-compose.prod.yml exec backend_prod python deltaplan/manage.py createsuperuser
+    docker compose -f docker-compose.prod.yml exec backend_prod python manage.py createsuperuser
     ```
 *   **Сбор статики** (если нужно вручную):
     ```bash
@@ -186,6 +186,15 @@ docker compose -f docker-compose.prod.yml up --build -d
 Чтобы посмотреть логи работающего в фоне production-бэкенда:
 ```bash
 docker compose -f docker-compose.prod.yml logs -f backend_prod
+```
+
+### **Запуск Flutter**
+```bash
+# Для веб-версии
+flutter run -d chrome --dart-define=API_URL=http://127.0.0.1:8080/api/
+
+# Для сборки Android APK
+flutter build apk --dart-define=API_URL=http://10.0.2.2:8080/api/
 ```
 
 ### **Остановка Production-сборки:**

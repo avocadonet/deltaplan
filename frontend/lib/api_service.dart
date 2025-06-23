@@ -2,13 +2,13 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:universal_io/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
+import 'config.dart';
 class ApiService {
   static String get _baseUrl {
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8000/api/';
+      return AppConfig.apiUrlAndroid;
     } else {
-      return 'http://127.0.0.1:8000/api/';
+      return AppConfig.apiUrl;
     }
   }
 
