@@ -37,6 +37,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - static_volume:/app/deltaplan/static:ro
       - media_volume:/app/deltaplan/media:ro
+      - ./frontend/build/web:/usr/share/nginx/html:ro
     depends_on:
       - backend_prod
     restart: always

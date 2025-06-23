@@ -1,15 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:universal_io/io.dart';
+//import 'package:universal_io/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'config.dart';
 class ApiService {
   static String get _baseUrl {
-    if (Platform.isAndroid) {
-      return AppConfig.apiUrlAndroid;
-    } else {
-      return AppConfig.apiUrl;
-    }
+    return AppConfig.apiUrl;
   }
 
   final _storage = const FlutterSecureStorage();

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
-import 'package:universal_io/io.dart';
+//import 'package:universal_io/io.dart';
 import 'config.dart';
 
 enum AuthStatus {
@@ -28,11 +28,8 @@ class AuthProvider with ChangeNotifier {
   Map<String, dynamic>? get userData => _userData;
 
   static String get _baseUrl {
-    if (Platform.isAndroid) {
-      return AppConfig.apiUrlAndroid;
-    } else {
-      return AppConfig.apiUrl;
-    }
+    return AppConfig.apiUrl;
+
   }
 
   AuthProvider() {
