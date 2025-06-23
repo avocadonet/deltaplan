@@ -31,6 +31,7 @@ docker-compose.test.yml
 
 # Секретные файлы
 /backend/.env
+/backend/.env_prod
 local_settings.py
 
 # Скомпилированные файлы Python
