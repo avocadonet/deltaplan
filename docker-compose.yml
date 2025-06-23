@@ -1,5 +1,5 @@
 services:
-  postgres:
+  postgres_dev:
     image: postgres:15-alpine
     container_name: deltaplan_db_dev
     env_file:
@@ -16,28 +16,32 @@ services:
       start_period: 30s
     restart: unless-stopped
     networks:
-      - deltaplan_net
+      - deltaplan_net_dev
 
-  backend:
-    build: ./backend
+  backend_dev:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: deltaplan_backend_dev
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    working_dir: /app/deltaplan
+    command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - ./backend/deltaplan:/app
+      - ./backend:/app
     ports:
       - "8000:8000"
     env_file:
       - ./backend/.env
     depends_on:
-      postgres:
+      postgres_dev:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - deltaplan_net
+      - deltaplan_net_dev
 
 volumes:
   postgres_data_dev:
 
 networks:
-  deltaplan_net:
+  deltaplan_net_dev:
     driver: bridge
+    name: deltaplan_net_dev
