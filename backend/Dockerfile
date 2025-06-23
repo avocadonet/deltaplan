@@ -1,37 +1,35 @@
 FROM python:3.11-slim-bookworm AS builder
 
+WORKDIR /app_builder
+
+COPY requirements.txt .
+
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+FROM python:3.11-slim-bookworm
+
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-COPY requirements.txt .
+RUN apt-get update && apt-get -y upgrade && rm -rf /var/lib/apt/lists/*
 
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+RUN addgroup --system app && adduser --system --ingroup app app
 
+COPY --from=builder /wheels /wheels
 
-FROM python:3.11-slim-bookworm
+RUN pip install --no-cache /wheels/*.whl
 
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
+COPY . .
 
-RUN addgroup --system app && adduser --system --group app
-
-WORKDIR /app
-
-RUN mkdir -p /app/static /app/media && chown -R app:app /app
-
-COPY --from=builder /app/wheels /wheels
-
-
-RUN pip install --no-cache /wheels/*
-
-COPY ./deltaplan .
+RUN mkdir -p /app/deltaplan/static /app/deltaplan/media && chown -R app:app /app/deltaplan/static /app/deltaplan/media
 
 RUN chown -R app:app /app
-
 USER app
 
-RUN python manage.py collectstatic --no-input
+WORKDIR /app/deltaplan
+RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
