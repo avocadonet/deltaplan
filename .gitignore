@@ -6,7 +6,7 @@
 *.tmp
 *.bak
 *.swp
-*.gitignore
+
 # Файлы IDE и редакторов
 .idea/
 .vscode/
@@ -19,10 +19,6 @@ project_context.txt
 tree.txt
 delta.zip
 ag.py
-/frontend/ag.py
-/frontend/project_context.txt
-/frontend/tree.txt
-
 docker-compose.test.yml
 log.txt
 # =================================================================

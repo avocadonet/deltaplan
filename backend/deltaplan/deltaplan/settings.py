@@ -38,9 +38,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
 if DEBUG:
-    ALLOWED_HOSTS.append('*')  # Для отладки разрешаем все хосты
+    ALLOWED_HOSTS.extend(['*', '127.0.0.1', 'localhost'])
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
@@ -52,14 +53,7 @@ if not DEBUG:
         "http://127.0.0.1",
         "http://localhost:8080",
         "http://127.0.0.1:8080",
-        "http://192.168.51.41:8080",
-        "http://172.24.192.1:8080"
     ]
-    
-    extra_origins_str = os.environ.get('EXTRA_CORS_ORIGINS', '')
-    if extra_origins_str:
-        extra_origins = [origin.strip() for origin in extra_origins_str.split(',')]
-        CORS_ALLOWED_ORIGINS.extend(extra_origins)
 
 ROOT_URLCONF = "deltaplan.urls"
 
@@ -102,11 +96,8 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
-    # 'DEFAULT_PERMISSION_CLASSES': (
-    #     'rest_framework.permissions.IsAuthenticated',
-    # )
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.IsAuthenticated',
     )
 }
 
