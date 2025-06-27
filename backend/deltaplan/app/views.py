@@ -4,6 +4,8 @@ from rest_framework import viewsets, generics, serializers, status, views
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import MyTokenObtainPairSerializer
 
 from .permissions import (
     IsAdmin,
@@ -295,3 +297,11 @@ class CalendarEventsView(generics.ListAPIView):
         for event in parent_school_events:
             unified_list.append({'id': event.id, 'title': event.title, 'description': event.description or '', 'start_date': event.event_date, 'event_type': 'parent_school', 'organizer_name': event.organizer.get_full_name() if event.organizer else 'Не указан', 'location': '', 'category_name': 'Школа для родителей'})
         return unified_list
+    
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    """
+    Кастомное представление для получения токена,
+    позволяет входить по email или username.
+    """
+    serializer_class = MyTokenObtainPairSerializer

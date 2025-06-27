@@ -3,8 +3,8 @@ from django.core.validators import RegexValidator
 from django.contrib.auth.models import AbstractUser
 
 
+
 class User(AbstractUser):
-    """ Кастомная модель пользователя с добавлением ролей (админ, учитель, родитель, студент). """
     ROLE_CHOICES = [
         ("admin", "Admin"),
         ("teacher", "Teacher"),
@@ -12,8 +12,6 @@ class User(AbstractUser):
         ("student", "Student"),
     ]
 
-    username = models.CharField(max_length=50, unique=True)
-    password_hash = models.CharField(max_length=100)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="student")
     
     created_by = models.ForeignKey(
@@ -24,13 +22,11 @@ class User(AbstractUser):
         related_name="created_users",
     )
     full_name = models.CharField(max_length=100, blank=True, null=True)
-    email = models.EmailField(max_length=100, blank=True, null=True)
+    email = models.EmailField(unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return self.username
-
-
+    
+    
 class EventCategory(models.Model):
     """ Категории для мероприятий (например, "Спорт", "Наука", "Искусство"). """
     name = models.CharField(max_length=50, unique=True)
@@ -47,7 +43,11 @@ class Event(models.Model):
     ]
 
     category = models.ForeignKey(
-        EventCategory, on_delete=models.PROTECT, related_name="events"
+        EventCategory,
+        on_delete=models.PROTECT,
+        related_name="events",
+        null=True,
+        blank=True,
     )
     title = models.CharField(max_length=100)
     description = models.TextField(blank=True, null=True)

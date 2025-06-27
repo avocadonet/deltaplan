@@ -67,11 +67,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> login(String username, String password) async {
-    _status = AuthStatus.authenticating;
-    notifyListeners();
+  _status = AuthStatus.authenticating;
+  notifyListeners();
 
-    final url = Uri.parse('${_baseUrl}token/');
-    try {
+  final url = Uri.parse('${_baseUrl}token/');
+  try {
+    developer.log('Attempting to POST to $url with username: $username', name: 'AuthProvider');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
@@ -96,8 +97,8 @@ class AuthProvider with ChangeNotifier {
         return true;
       } else {
         developer.log(
-          'Login failed with status ${response.statusCode}: ${response.body}',
-          name: 'AuthProvider',
+        'Login failed with status ${response.statusCode}: ${response.body}', // <-- response.body очень важен
+        name: 'AuthProvider',
         );
       }
     } catch (e, s) {
@@ -137,7 +138,6 @@ class AuthProvider with ChangeNotifier {
           'email': email,
           'first_name': firstName,
           'last_name': lastName,
-          'role': 'student',
         }),
       );
 

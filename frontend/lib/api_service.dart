@@ -203,7 +203,6 @@ class ApiService {
     final body = json.encode({
       'title': title,
       'description': description,
-      'category': 1,
       'status': 'upcoming'
     });
     try {

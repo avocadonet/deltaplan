@@ -9,7 +9,8 @@ services:
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      # Самая простая и надежная проверка, не зависящая от переменных
+      test: ["CMD-SHELL", "pg_isready"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,8 +24,10 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: deltaplan_backend_dev
-    working_dir: /app/deltaplan
-    command: python manage.py runserver 0.0.0.0:8000
+    
+    entrypoint: /app/entrypoint.sh 
+    command: python deltaplan/manage.py runserver 0.0.0.0:8000
+    
     volumes:
       - ./backend:/app
     ports:

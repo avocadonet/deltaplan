@@ -12,8 +12,6 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'default-secret-key-for-local-dev')
 
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
 
-ALLOWED_HOSTS = ["*"]
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -38,22 +36,35 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', 'localhost,127.0.0.1')
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
-if DEBUG:
-    ALLOWED_HOSTS.extend(['*', '127.0.0.1', 'localhost'])
-
+ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS')
 CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ORIGIN_ALLOW_ALL = DEBUG
+if DEBUG:
+    ALLOWED_HOSTS = ["*"] 
+else:
+    if ALLOWED_HOSTS_STR:
+        ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
+    else:
+        ALLOWED_HOSTS = []
 
 if not DEBUG:
     CORS_ALLOWED_ORIGINS = [
-        "http://deltaplan.com",
-        "https://deltaplan.com",
-        "http://localhost",
-        "http://127.0.0.1",
-        "http://localhost:8080",
-        "http://127.0.0.1:8080",
+        # Здесь укажете ваш реальный домен, когда будете разворачивать продакшен
+        "https://your_domain.com",
+        "http://your_domain.com",
     ]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
 
 ROOT_URLCONF = "deltaplan.urls"
 

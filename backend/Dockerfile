@@ -1,36 +1,39 @@
-FROM python:3.11-slim-bookworm AS builder
+# backend/Dockerfile - ДЛЯ ЛОКАЛЬНОЙ РАЗРАБОТКИ
 
-WORKDIR /app_builder
-
-COPY requirements.txt .
-
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
-
+# 1. Базовый образ
 FROM python:3.11-slim-bookworm
 
+# 2. Установка системных зависимостей, ВКЛЮЧАЯ NETCAT
+#    --no-install-recommends экономит место.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    netcat-openbsd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# 3. Установка рабочей директории
 WORKDIR /app
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# 4. Установка зависимостей Python
+#    Копируем только requirements.txt для лучшего кэширования Docker-слоев.
+#    Если зависимости не менялись, Docker не будет переустанавливать их при каждой сборке.
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apt-get update && apt-get -y upgrade && rm -rf /var/lib/apt/lists/*
+# 5. Копирование entrypoint-скрипта и выдача прав на исполнение
+#    Предполагается, что entrypoint.sh лежит в той же папке backend/
+COPY entrypoint.sh .
+RUN chmod +x /app/entrypoint.sh
 
-RUN addgroup --system app && adduser --system --ingroup app app
-
-COPY --from=builder /wheels /wheels
-
-RUN pip install --no-cache /wheels/*.whl
-
+# 6. Копирование остального кода
+#    Это нужно, чтобы образ был "целым", хотя для разработки мы его перекроем volume'ом.
 COPY . .
 
-RUN mkdir -p /app/deltaplan/static /app/deltaplan/media && chown -R app:app /app/deltaplan/static /app/deltaplan/media
+# 7. Запуск от root (проще для локальной разработки с volumes)
+#    Мы не используем `USER app` здесь
 
-RUN chown -R app:app /app
-USER app
+# 8. Указываем скрипт входа
+ENTRYPOINT ["/app/entrypoint.sh"]
 
-WORKDIR /app/deltaplan
-RUN python manage.py collectstatic --noinput
-
-EXPOSE 8000
-
-CMD ["gunicorn", "deltaplan.wsgi:application", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+# 9. Команда по умолчанию - запуск dev-сервера Django
+#    Эта команда будет передана как аргумент в entrypoint.sh
+CMD ["python", "deltaplan/manage.py", "runserver", "0.0.0.0:8000"]

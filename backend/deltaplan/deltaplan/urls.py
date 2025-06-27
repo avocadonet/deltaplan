@@ -4,10 +4,8 @@ from rest_framework.routers import DefaultRouter
 from app import views
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenRefreshView
+from app.views import MyTokenObtainPairView
 
 router = DefaultRouter()
 
@@ -32,7 +30,7 @@ router.register(r"parent-school-registrations", views.ParentSchoolRegistrationVi
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("api/register/", views.RegisterView.as_view(), name="register"),
-    path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/token/", MyTokenObtainPairView.as_view(), name="token_obtain_pair"),    
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/my-applications/", views.MyApplicationsView.as_view(), name="my-applications"),
     path("api/calendar-events/", views.CalendarEventsView.as_view(), name="calendar-events"),
