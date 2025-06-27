@@ -1,5 +1,4 @@
 #!/bin/sh
-# backend/entrypoint.sh - ИСПРАВЛЕНО
 
 set -e
 
@@ -10,8 +9,6 @@ done
 echo "PostgreSQL started"
 
 echo "Applying database migrations..."
-# ИСПРАВЛЕННЫЙ ПУТЬ
 python deltaplan/manage.py migrate
 
-# Эта команда выполнит то, что передано в "command" в docker-compose.yml
 exec "$@"

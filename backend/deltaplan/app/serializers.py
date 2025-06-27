@@ -182,14 +182,11 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        # Добавляем в токен дополнительную информацию, если нужно
         token['username'] = user.username
         token['role'] = user.role
         return token
 
     def validate(self, attrs):
-        # Эта логика позволит входить и по username, и по email
-        # `user_identifier` - это то, что придет с фронтенда в поле "username"
         user_identifier = attrs.get('username')
         password = attrs.get('password')
 
@@ -199,10 +196,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         ).first()
 
         if user and user.check_password(password):
-            # Если пользователь найден и пароль верный,
-            # вызываем стандартную валидацию, передав ей username этого пользователя
             attrs['username'] = user.get_username()
             return super().validate(attrs)
         else:
-            # Если пользователь не найден или пароль неверный
             raise serializers.ValidationError('Неверные учетные данные. Пожалуйста, попробуйте снова.')
