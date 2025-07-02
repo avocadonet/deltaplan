@@ -56,7 +56,7 @@ class DetailScreen extends StatelessWidget {
                     ),
                   ),
                 );
-              }).toList(),
+              }),
               const Divider(height: 24),
             ],
             Text(

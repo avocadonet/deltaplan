@@ -205,9 +205,7 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> _refreshTokens() async {
-    if (_refreshToken == null) {
-      _refreshToken = await _storage.read(key: 'refresh_token');
-    }
+    _refreshToken ??= await _storage.read(key: 'refresh_token');
     if (_refreshToken == null) return false;
 
     final url = Uri.parse('${_baseUrl}token/refresh/');
