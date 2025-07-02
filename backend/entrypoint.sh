@@ -1,14 +1,13 @@
 #!/bin/sh
 
-set -e
-
-echo "Waiting for postgres..."
-while ! nc -z $DB_HOST $DB_PORT; do
-  sleep 0.1
-done
-echo "PostgreSQL started"
+# Ожидаем, пока база данных будет готова
+# (Это хорошая практика, но зависит от healthcheck, который у вас уже есть, так что можно пропустить)
 
 echo "Applying database migrations..."
-python deltaplan/manage.py migrate
+python manage.py migrate --no-input
 
+echo "Collecting static files..."
+python manage.py collectstatic --no-input
+
+# Запускаем основной процесс, переданный в docker-compose (gunicorn)
 exec "$@"

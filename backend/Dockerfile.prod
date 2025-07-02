@@ -1,54 +1,47 @@
 # --- Этап 1: Сборщик зависимостей ---
 FROM python:3.11-slim-bookworm AS builder
 
-# Устанавливаем системные зависимости, которые могут понадобиться для сборки python-пакетов
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev
-
 WORKDIR /app_builder
-
-# ВАЖНО: Указываем правильный путь к файлу относительно контекста сборки
 COPY backend/requirements.txt .
-
-# Собираем "колеса" для быстрой установки
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
-
 
 # --- Этап 2: Финальный образ ---
 FROM python:3.11-slim-bookworm
 
-# Устанавливаем переменные окружения
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Рабочая директория
+# Основная рабочая директория
 WORKDIR /app
 
-# Создаем пользователя без root-прав
 RUN addgroup --system app && adduser --system --ingroup app app
+# Устанавливаем зависимости для Pillow и других библиотек
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libjpeg-dev zlib1g-dev && rm -rf /var/lib/apt/lists/*
 
-# Устанавливаем системные зависимости, которые нужны для работы приложения (например, для Pillow)
-RUN apt-get update && apt-get install -y --no-install-recommends libjpeg-dev zlib1g-dev && rm -rf /var/lib/apt/lists/*
-
-# Копируем "колеса" и устанавливаем их
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache /wheels/*.whl
 
-# ВАЖНО: Копируем содержимое папки backend в рабочую директорию /app
-# Слеш в конце `backend/` важен - он копирует содержимое папки, а не саму папку
+# Копируем приложение
 COPY backend/ .
 
-# Создаем директории для статики и медиа и назначаем права
+# Копируем и делаем исполняемым entrypoint скрипт
+COPY backend/entrypoint.prod.sh /app/entrypoint.prod.sh
+RUN chmod +x /app/entrypoint.prod.sh
+
+# Создаем директории и назначаем права
 RUN mkdir -p /app/staticfiles /app/media && \
     chown -R app:app /app/staticfiles /app/media
 
-# Передаем владение всем приложением пользователю 'app'
+# Меняем владельца всего приложения
 RUN chown -R app:app /app
-
-# Переключаемся на пользователя 'app'
+# Переключаемся на непривилегированного пользователя
 USER app
 
-# Открываем порт
 EXPOSE 8000
 
-# CMD будет переопределен в docker-compose.yml, но полезно иметь его здесь как значение по умолчанию
+# Указываем entrypoint
+ENTRYPOINT ["/app/entrypoint.prod.sh"]
+
+# Команда по умолчанию, которая будет передана в entrypoint
 CMD ["gunicorn", "deltaplan.wsgi:application", "--bind", "0.0.0.0:8000"]
