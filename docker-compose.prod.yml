@@ -29,7 +29,8 @@ services:
       postgres_prod:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"]
+      # Проверяем эндпоинт /api/token/, который не требует аутентификации
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/token/ || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
