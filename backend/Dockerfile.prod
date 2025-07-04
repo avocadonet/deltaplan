@@ -1,47 +1,63 @@
+# ==============================================================================
+#                 ПРОДАКШЕН DOCKERFILE ДЛЯ BACKEND
+#          Адаптирован под структуру проекта: backend/deltaplan/manage.py
+# ==============================================================================
+
 # --- Этап 1: Сборщик зависимостей ---
 FROM python:3.11-slim-bookworm AS builder
 
+# Устанавливаем системные зависимости, необходимые для сборки пакетов Python
 RUN apt-get update && apt-get install -y --no-install-recommends build-essential libpq-dev
+
 WORKDIR /app_builder
+
+# Копируем requirements.txt из правильного места (backend/requirements.txt)
 COPY backend/requirements.txt .
 RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
 
 # --- Этап 2: Финальный образ ---
 FROM python:3.11-slim-bookworm
 
+# Устанавливаем переменные окружения для Python
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Основная рабочая директория
+# Устанавливаем системные зависимости для работы приложения (libpq для psycopg2, curl для healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev curl netcat-openbsd && rm -rf /var/lib/apt/lists/*
+# Создаем непривилегированного пользователя для запуска приложения
+RUN addgroup --system app && adduser --system --ingroup app app
+
+# Создаем и устанавливаем корневую рабочую директорию
 WORKDIR /app
 
-RUN addgroup --system app && adduser --system --ingroup app app
-# Устанавливаем зависимости для Pillow и других библиотек
-RUN apt-get update && apt-get install -y --no-install-recommends libpq-dev libjpeg-dev zlib1g-dev && rm -rf /var/lib/apt/lists/*
-
+# Копируем "колеса" Python из этапа сборки и устанавливаем их
 COPY --from=builder /wheels /wheels
 RUN pip install --no-cache /wheels/*.whl
 
-# Копируем приложение
-COPY backend/ .
+# Копируем скрипт запуска и делаем его исполняемым
+COPY backend/entrypoint.prod.sh /entrypoint.prod.sh
+RUN chmod +x /entrypoint.prod.sh
 
-# Копируем и делаем исполняемым entrypoint скрипт
-COPY backend/entrypoint.prod.sh /app/entrypoint.prod.sh
-RUN chmod +x /app/entrypoint.prod.sh
+# --- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ ---
+# Копируем содержимое папки backend/deltaplan/ в рабочую директорию /app
+# Внутри контейнера будет: /app/manage.py, /app/deltaplan/, /app/app/
+COPY backend/deltaplan/ .
 
-# Создаем директории и назначаем права
+# Создаем директории для статики и медиа и назначаем владельца
 RUN mkdir -p /app/staticfiles /app/media && \
     chown -R app:app /app/staticfiles /app/media
 
-# Меняем владельца всего приложения
+# Меняем владельца всех файлов приложения
 RUN chown -R app:app /app
 # Переключаемся на непривилегированного пользователя
 USER app
 
 EXPOSE 8000
 
-# Указываем entrypoint
-ENTRYPOINT ["/app/entrypoint.prod.sh"]
+# Указываем скрипт, который будет выполняться при запуске контейнера
+ENTRYPOINT ["/entrypoint.prod.sh"]
 
-# Команда по умолчанию, которая будет передана в entrypoint
+# Команда по умолчанию, которая передается в entrypoint.
+# WORKDIR=/app, поэтому Python найдет модуль deltaplan (папку с wsgi.py)
 CMD ["gunicorn", "deltaplan.wsgi:application", "--bind", "0.0.0.0:8000"]

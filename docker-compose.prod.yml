@@ -7,7 +7,6 @@ services:
     env_file:
       - ./backend/.env_prod
     healthcheck:
-      # Убедитесь, что переменные POSTGRES_USER и POSTGRES_DB есть в .env_prod
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
@@ -21,26 +20,20 @@ services:
       context: .
       dockerfile: backend/Dockerfile.prod
     container_name: deltaplan_backend_prod
-    
-    # entrypoint и cmd теперь определены в Dockerfile.prod.
-    # Мы можем переопределить command здесь, если нужно.
-    # Dockerfile уже содержит правильную команду для gunicorn.
-    # Миграции и сбор статики теперь выполняются в entrypoint.
-    
-    # working_dir был причиной ошибки, убираем его.
-    # WORKDIR /app из Dockerfile будет использоваться по умолчанию, что корректно.
-
     volumes:
-      # Django будет писать в /app/staticfiles, а Nginx - читать оттуда.
       - static_volume:/app/staticfiles
       - media_volume:/app/media
-    
     env_file:
       - ./backend/.env_prod
-    
     depends_on:
       postgres_prod:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
     restart: always
     networks:
       - deltaplan_net_prod
@@ -50,25 +43,34 @@ services:
     container_name: deltaplan_nginx_prod
     ports:
       - "80:80"
-      # Раскомментируйте, когда настроите SSL
-      # - "443:443"
+      - "443:443"
     volumes:
-      # Пути к volume внутри nginx должны совпадать с путями,
-      # указанными в nginx.conf. В вашем случае все верно.
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./frontend/build/web:/usr/share/nginx/html:ro
       - static_volume:/app/staticfiles:ro
       - media_volume:/app/media:ro
+      - certbot_conf:/etc/letsencrypt:ro
+      - certbot_www:/var/www/certbot:ro
     depends_on:
-      - backend_prod
+      backend_prod:
+        condition: service_healthy
     restart: always
     networks:
       - deltaplan_net_prod
+
+  certbot:
+    image: certbot/certbot
+    container_name: deltaplan_certbot_prod
+    volumes:
+      - certbot_conf:/etc/letsencrypt
+      - certbot_www:/var/www/certbot
 
 volumes:
   postgres_data_prod:
   static_volume:
   media_volume:
+  certbot_conf:
+  certbot_www:
 
 networks:
   deltaplan_net_prod:

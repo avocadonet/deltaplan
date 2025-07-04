@@ -1,34 +1,60 @@
+# ==============================================================================
+#           Файл настроек Django для проекта "Дельта"
+#      Оптимизирован для работы в Docker-окружении (Prod & Dev)
+# ==============================================================================
+
 import os
 from pathlib import Path
 from datetime import timedelta
+from dotenv import load_dotenv
 
-# --- Базовые настройки ---
+# --- Шаг 1: Определение базовых путей ---
 
-# BASE_DIR указывает на корень Django-проекта (папка, где находится manage.py)
-# backend/deltaplan/
+# Загружаем переменные из .env файла в окружение.
+# Это нужно, чтобы Django мог их видеть при запуске через Gunicorn или manage.py.
+load_dotenv()
+
+# BASE_DIR - это корневая директория вашего Django-проекта, где лежит manage.py.
+# В нашем Docker-контейнере это /app.
+# __file__ -> /app/deltaplan/settings.py
+# .parent -> /app/deltaplan
+# .parent.parent -> /app
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Корень всего приложения внутри Docker-контейнера.
-# Мы определили его как /app в Dockerfile.
-APP_DIR = BASE_DIR.parent
 
+# --- Шаг 2: Безопасность и основные параметры ---
 
-# --- Безопасность и Переменные окружения ---
-
-# Секретный ключ. Обязательно должен быть задан в .env файле.
+# Секретный ключ. ОБЯЗАТЕЛЬНО должен быть задан в .env файле.
 SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    raise ValueError("Необходимо установить SECRET_KEY в .env файле!")
 
 # Режим отладки. По умолчанию ВЫКЛЮЧЕН для безопасности.
-# Включается только если DEBUG=True в .env файле.
+# Включается только если DEBUG=True (или 1, t) в .env файле.
 DEBUG = os.environ.get('DEBUG', 'False').lower() in ('true', '1', 't')
 
 # Разрешенные хосты. Берем из переменной окружения, разделенной запятыми.
-# Например: ALLOWED_HOSTS=127.0.0.1,localhost,mydomain.com
-ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS', '')
-ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
+# В режиме отладки разрешаем все для удобства, в продакшене - только конкретные.
+if DEBUG:
+    ALLOWED_HOSTS = ['*']
+else:
+    ALLOWED_HOSTS_STR = os.environ.get('ALLOWED_HOSTS')
+    if not ALLOWED_HOSTS_STR:
+        raise ValueError("В продакшен-режиме (DEBUG=False) необходимо указать ALLOWED_HOSTS!")
+    ALLOWED_HOSTS = [host.strip() for host in ALLOWED_HOSTS_STR.split(',') if host.strip()]
 
+# Доверяем заголовку X-Forwarded-Proto, который устанавливает Nginx.
+# Этот заголовок говорит Django, что исходное соединение было по HTTPS.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-# --- Приложения и Middleware ---
+# Требовать безопасные куки. Браузер будет отправлять их только по HTTPS.
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+
+# Предотвращение кликджекинга
+X_FRAME_OPTIONS = 'DENY'
+
+# --- Шаг 3: Конфигурация приложений ---
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -47,9 +73,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware", # Добавлено для обслуживания статики
+    # WhiteNoise УБРАН, так как Nginx занимается статикой в продакшене.
     "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware", # Должен быть как можно выше
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -57,36 +83,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-
-# --- Настройки CORS (Cross-Origin Resource Sharing) ---
-
-# В режиме отладки разрешаем запросы с любого источника (удобно для локальной разработки)
-if DEBUG:
-    CORS_ALLOW_ALL_ORIGINS = True
-    CORS_ORIGIN_ALLOW_ALL = True
-else:
-    # В продакшене разрешаем только с конкретных доменов, которые тоже берутся из .env
-    # Например: CORS_ALLOWED_ORIGINS=https://mydomain.com,http://localhost:3000
-    CORS_ALLOWED_ORIGINS_STR = os.environ.get('CORS_ALLOWED_ORIGINS', '')
-    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_STR.split(',') if origin.strip()]
-
-# Можно также использовать CORS_TRUSTED_ORIGINS, если ваш фронтенд на том же домене,
-# но другом порту (например, localhost:8000 и localhost:3000)
-
-CORS_ALLOW_HEADERS = [
-    'accept',
-    'authorization',
-    'content-type',
-    'origin',
-    'user-agent',
-    'x-csrftoken',
-    'x-requested-with',
-]
-
-
-# --- URL-ы и Шаблоны ---
+# --- Шаг 4: Настройки маршрутизации и шаблонов ---
 
 ROOT_URLCONF = "deltaplan.urls"
+# Путь к WSGI-приложению для Gunicorn.
 WSGI_APPLICATION = "deltaplan.wsgi.application"
 
 TEMPLATES = [
@@ -106,7 +106,7 @@ TEMPLATES = [
 ]
 
 
-# --- База данных ---
+# --- Шаг 5: Настройки базы данных ---
 
 DATABASES = {
     "default": {
@@ -114,13 +114,13 @@ DATABASES = {
         'NAME': os.environ.get('POSTGRES_DB'),
         'USER': os.environ.get('POSTGRES_USER'),
         'PASSWORD': os.environ.get('POSTGRES_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
+        'HOST': os.environ.get('DB_HOST'), # Имя сервиса в docker-compose
         'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
 
-# --- Аутентификация и Авторизация ---
+# --- Шаг 6: Аутентификация, авторизация и DRF ---
 
 AUTH_USER_MODEL = 'app.User'
 
@@ -143,10 +143,25 @@ REST_FRAMEWORK = {
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": True, # Опционально, но безопасно
 }
 
 
-# --- Интернационализация ---
+# --- Шаг 7: Настройки CORS (Cross-Origin Resource Sharing) ---
+# Эта настройка позволяет вашему фронтенду (Flutter Web) делать запросы к API.
+
+if DEBUG:
+    # В режиме разработки разрешаем всё для удобства.
+    CORS_ALLOW_ALL_ORIGINS = True
+else:
+    # В продакшене разрешаем запросы только с конкретных доменов из .env
+    CORS_ALLOWED_ORIGINS_STR = os.environ.get('CORS_ALLOWED_ORIGINS')
+    if not CORS_ALLOWED_ORIGINS_STR:
+        raise ValueError("В продакшен-режиме (DEBUG=False) необходимо указать CORS_ALLOWED_ORIGINS!")
+    CORS_ALLOWED_ORIGINS = [origin.strip() for origin in CORS_ALLOWED_ORIGINS_STR.split(',') if origin.strip()]
+
+
+# --- Шаг 8: Интернационализация ---
 
 LANGUAGE_CODE = "ru-ru"
 TIME_ZONE = "Europe/Moscow"
@@ -154,20 +169,18 @@ USE_I18N = True
 USE_TZ = True
 
 
-# --- Статические и медиа файлы ---
-# Это ключевые настройки для работы в Docker.
+# --- Шаг 9: Статические и медиа файлы ---
+# Эти пути должны точно совпадать с путями томов в docker-compose.yml
 
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 
-# Пути внутри контейнера. Nginx будет забирать файлы из этих папок.
-STATIC_ROOT = os.path.join(APP_DIR, 'staticfiles')
-MEDIA_ROOT = os.path.join(APP_DIR, 'media')
-
-# Добавлено для WhiteNoise (упрощает раздачу статики в dev режиме)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Абсолютные пути внутри контейнера, куда Django будет собирать статику
+# и сохранять медиа-файлы. Nginx будет читать из этих же путей.
+STATIC_ROOT = '/app/staticfiles'
+MEDIA_ROOT = '/app/media'
 
 
-# --- Прочее ---
+# --- Шаг 10: Прочие настройки ---
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
