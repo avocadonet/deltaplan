@@ -1,11 +1,19 @@
+// frontend/lib/api_service.dart
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-//import 'package:universal_io/io.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'config.dart';
+
 class ApiService {
-  static String get _baseUrl {
-    return AppConfig.apiUrl;
+  // Базовый URL теперь берется из AppConfig
+  static const String _baseUrl = AppConfig.apiUrl;
+
+  // Функция для безопасного построения URL
+  Uri _buildUri(String endpoint) {
+    // Удаляем возможные слэши в начале эндпоинта, чтобы избежать двойных слэшей
+    final cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    return Uri.parse('$_baseUrl/$cleanEndpoint');
   }
 
   final _storage = const FlutterSecureStorage();
@@ -28,7 +36,7 @@ class ApiService {
     try {
       final headers = await _getHeaders(includeAuth: authenticated);
       final response = await http.get(
-        Uri.parse('$_baseUrl$endpoint'),
+        _buildUri(endpoint), // Используем новый метод
         headers: headers,
       );
 
@@ -70,7 +78,7 @@ class ApiService {
     }
     try {
       final response = await http.get(
-        Uri.parse('${_baseUrl}my-applications/'),
+        _buildUri('my-applications/'), // Используем новый метод
         headers: headers,
       );
       if (response.statusCode == 200) {
@@ -89,7 +97,7 @@ class ApiService {
     if (headers['Authorization'] == null) {
       return {'success': false, 'message': 'Пожалуйста, авторизуйтесь.'};
     }
-    final url = Uri.parse('${_baseUrl}applications/');
+    final url = _buildUri('applications/'); // Используем новый метод
     final body = json.encode({'event_id': eventId});
     try {
       final response = await http.post(url, headers: headers, body: body);
@@ -111,7 +119,7 @@ class ApiService {
     if (headers['Authorization'] == null) {
       return {'success': false, 'message': 'Пожалуйста, авторизуйтесь.'};
     }
-    final url = Uri.parse('${_baseUrl}parent-school-registrations/');
+    final url = _buildUri('parent-school-registrations/'); // Используем новый метод
     final body = json.encode({'event': eventId});
     try {
       final response = await http.post(url, headers: headers, body: body);
@@ -134,7 +142,7 @@ class ApiService {
       required bool isAnonymous}) async {
     final headers = await _getHeaders(includeAuth: true);
     if (headers['Authorization'] == null) return false;
-    final url = Uri.parse('${_baseUrl}parent-club/');
+    final url = _buildUri('parent-club/'); // Используем новый метод
     final body = json
         .encode({'section': section, 'content': content, 'is_anonymous': isAnonymous});
     try {
@@ -154,7 +162,7 @@ class ApiService {
       String? photoUrl}) async {
     final headers = await _getHeaders(includeAuth: true);
     if (headers['Authorization'] == null) return false;
-    final url = Uri.parse('${_baseUrl}alumni/');
+    final url = _buildUri('alumni/'); // Используем новый метод
     final body = json.encode({
       'full_name': fullName,
       'display_name': displayName,
@@ -178,7 +186,7 @@ class ApiService {
       return {'success': false, 'message': 'Пожалуйста, авторизуйтесь.'};
     }
 
-    final url = Uri.parse('${_baseUrl}suggestions/');
+    final url = _buildUri('suggestions/'); // Используем новый метод
     final body =
         json.encode({'content': content, 'screen_source': screenSource});
     try {
@@ -199,7 +207,7 @@ class ApiService {
       return {'success': false, 'message': 'Пожалуйста, авторизуйтесь.'};
     }
 
-    final url = Uri.parse('${_baseUrl}events/');
+    final url = _buildUri('events/'); // Используем новый метод
     final body = json.encode({
       'title': title,
       'description': description,

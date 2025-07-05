@@ -1,8 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    
+    <!-- КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Разрешение на доступ в интернет -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
-        android:label="delta"
+        android:label="Дельтаплан"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
