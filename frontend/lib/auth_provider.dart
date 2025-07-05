@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:developer' as developer;
+import 'package:flutter/foundation.dart'; // <-- Важный импорт для kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
-//import 'package:universal_io/io.dart';
-import 'config.dart';
+import 'config.dart'; // <-- Используем наш универсальный конфиг
 
 enum AuthStatus {
   uninitialized,
@@ -27,10 +27,21 @@ class AuthProvider with ChangeNotifier {
   String? get token => _accessToken;
   Map<String, dynamic>? get userData => _userData;
 
-  static String get _baseUrl {
-    return AppConfig.apiUrl;
+  /// КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Универсальный построитель URL
+  /// Этот метод сам определяет, для какой платформы он собирает URL.
+  Uri _buildUri(String endpoint) {
+    // 1. Убираем слэш в начале эндпоинта, если он есть
+    final cleanEndpoint = endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
 
+    // 2. Определяем базовый URL: пустой для веба, полный для мобильных
+    final String baseUrl = kIsWeb ? '' : AppConfig.productionApiDomain;
+
+    // 3. Собираем финальный URL и возвращаем его
+    // Для Web получится: /api/token/
+    // Для Android получится: https://deltaplanonline.ru/api/token/
+    return Uri.parse('$baseUrl/api/$cleanEndpoint');
   }
+
 
   AuthProvider() {
     _tryAutoLogin();
@@ -67,12 +78,12 @@ class AuthProvider with ChangeNotifier {
   }
 
   Future<bool> login(String username, String password) async {
-  _status = AuthStatus.authenticating;
-  notifyListeners();
+    _status = AuthStatus.authenticating;
+    notifyListeners();
 
-  final url = Uri.parse('${_baseUrl}token/');
-  try {
-    developer.log('Attempting to POST to $url with username: $username', name: 'AuthProvider');
+    final url = _buildUri('token/'); // <-- ИСПРАВЛЕНО
+    try {
+      developer.log('Attempting to POST to $url with username: $username', name: 'AuthProvider');
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
@@ -97,8 +108,8 @@ class AuthProvider with ChangeNotifier {
         return true;
       } else {
         developer.log(
-        'Login failed with status ${response.statusCode}: ${response.body}', // <-- response.body очень важен
-        name: 'AuthProvider',
+          'Login failed with status ${response.statusCode}: ${response.body}',
+          name: 'AuthProvider',
         );
       }
     } catch (e, s) {
@@ -115,18 +126,11 @@ class AuthProvider with ChangeNotifier {
     return false;
   }
 
-  Future<bool> register(
-    String username,
-    String password,
-    String password2,
-    String email,
-    String firstName,
-    String lastName,
-  ) async {
+  Future<bool> register(String username, String password, String password2, String email, String firstName, String lastName) async {
     _status = AuthStatus.authenticating;
     notifyListeners();
 
-    final url = Uri.parse('${_baseUrl}register/');
+    final url = _buildUri('register/'); // <-- ИСПРАВЛЕНО
     try {
       final response = await http.post(
         url,
@@ -177,7 +181,7 @@ class AuthProvider with ChangeNotifier {
       return;
     }
 
-    final url = Uri.parse('${_baseUrl}users/$userId/');
+    final url = _buildUri('users/$userId/'); // <-- ИСПРАВЛЕНО
     try {
       final response = await http.get(url, headers: {
         'Content-Type': 'application/json',
@@ -208,7 +212,7 @@ class AuthProvider with ChangeNotifier {
     _refreshToken ??= await _storage.read(key: 'refresh_token');
     if (_refreshToken == null) return false;
 
-    final url = Uri.parse('${_baseUrl}token/refresh/');
+    final url = _buildUri('token/refresh/'); // <-- ИСПРАВЛЕНО
     try {
       final response = await http.post(
         url,

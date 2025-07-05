@@ -1,3 +1,6 @@
+// frontend/lib/config.dart
+
 class AppConfig {
-    static const String apiUrl = 'https://deltaplanonline.ru/api';
+  /// Публичный домен вашего сервера.
+  static const String productionApiDomain = 'https://deltaplanonline.ru';
 }
