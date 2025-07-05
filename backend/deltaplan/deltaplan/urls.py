@@ -5,8 +5,7 @@ from app import views
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework_simplejwt.views import TokenRefreshView
-from app.views import MyTokenObtainPairView
-
+from app.views import MyTokenObtainPairView, health_check
 router = DefaultRouter()
 
 router.register(r"users", views.UserViewSet)
@@ -28,6 +27,7 @@ router.register(r"parent-school-registrations", views.ParentSchoolRegistrationVi
 
 
 urlpatterns = [
+    path("api/health/", health_check, name="health_check"), # <-- Новая строка
     path("admin/", admin.site.urls),
     path("api/register/", views.RegisterView.as_view(), name="register"),
     path("api/token/", MyTokenObtainPairView.as_view(), name="token_obtain_pair"),    
