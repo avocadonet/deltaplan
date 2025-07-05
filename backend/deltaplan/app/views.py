@@ -6,7 +6,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import MyTokenObtainPairSerializer
-
+from django.http import JsonResponse
+from rest_framework.decorators import api_view, permission_classes
 from .permissions import (
     IsAdmin,
     IsAdminOrReadOnly,
@@ -305,3 +306,9 @@ class MyTokenObtainPairView(TokenObtainPairView):
     позволяет входить по email или username.
     """
     serializer_class = MyTokenObtainPairSerializer
+    
+
+@api_view(['GET'])
+@permission_classes([AllowAny]) # <-- Разрешаем доступ всем
+def health_check(request):
+    return JsonResponse({"status": "ok", "timestamp": timezone.now()})
